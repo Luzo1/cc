@@ -1,0 +1,63 @@
+## soap1
+
+from zeep import Client
+client=Client('http://localhost:10000?wsdl')
+result=client.service.add_numbers(5,10)
+print(f"result from the soap service:{result}")
+
+
+## soap2
+
+from spyne.application import Application
+from spyne.decorator import rpc
+from spyne.service import ServiceBase
+from spyne.protocol.soap import Soap11
+from spyne.server.wsgi import WsgiApplication
+from spyne.model.primitive import Integer
+from wsgiref.simple_server import make_server
+
+class CalculatorService(ServiceBase):
+    @rpc(Integer, Integer_returns=Integer)  # Corrected syntax for specifying return type
+    def add_numbers(self, num1, num2):
+        return num1 + num2
+
+soap_app = Application([CalculatorService], tns='example.soap', in_protocol=Soap11(validator='lxml'), out_protocol=Soap11())
+wsgi_app = WsgiApplication(soap_app)
+host = "localhost"
+port = 10000
+server = make_server(host, port, wsgi_app)
+print(f"listening on {host}:{port}")
+server.serve_forever()
+
+
+
+
+## C2F
+
+
+import requests
+import xml.etree.ElementTree as ET
+temp = float(input("Enter a Celsius value To convert in Fahrenheit: "))
+
+url = "https://www.w3schools.com/xml/tempconvert.asmx"
+SOAPEnvelope = f"""<?xml version="1.0" encoding="utf-8"?>
+<soap:Envelope xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" 
+xmlns:xsd="http://www.w3.org/2001/XMLSchema" 
+xmlns:soap="http://schemas.xmlsoap.org/soap/envelope/">
+  <soap:Body>
+    <CelsiusToFahrenheit xmlns="https://www.w3schools.com/xml/">
+      <Celsius>{temp}</Celsius>
+    </CelsiusToFahrenheit>
+  </soap:Body>
+</soap:Envelope>"""
+
+headers = {
+  "Content-Type": "text/xml; charset=utf-8",
+  "SOAPAction": "https://www.w3schools.com/xml/CelsiusToFahrenheit"  # Adding SOAP Action header
+}
+response = requests.post(url, data=SOAPEnvelope, headers=headers)
+root =ET.fromstring(response.text)
+
+for child in root.iter("{https://www.w3schools.com/xml/}CelsiusToFahrenheitResult"):
+  C2F=child.text
+  print(C2F)
